@@ -1,0 +1,78 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: springboot-demo
+  namespace: test-pipeline
+spec:
+  workspaces:
+  - name: source-volume
+    persistentVolumeClaim:
+      claimName: shared-data
+  - name: maven-volume
+    persistentVolumeClaim:
+      claimName: maven-data 
+  - name: empty-dir
+    emptyDir: {}
+  - name: ssh-creds
+    secret:
+      secretName: git-credentials
+  params:
+  - name: REVISION
+    value: main
+  pipelineSpec:
+    workspaces:
+    - name: source-volume
+    params:
+      - name: REVISION
+        type: string
+        default: ""
+    tasks:
+    - name: git-clone-sourcecode
+      taskRef:
+        resolver: cluster
+        params:
+        - name: name
+          value: git-clone
+        - name: kind
+          value: task
+        - name: namespace
+          value: default
+      workspaces:
+      - name: output
+        workspace: source-volume
+      - name: ssh-directory
+        workspace: ssh-creds
+      params:
+      - name: url
+        value: git@github.com:shadowmktk/springboot-demo.git
+      - name: revision
+        value: $(params.REVISION)
+      - name: subdirectory
+        value: sourcecode
+        
+    - name: git-clone-deployment
+      runAfter:
+      - git-clone-sourcecode
+      taskRef:
+        resolver: cluster
+        params:
+        - name: name
+          value: git-clone
+        - name: kind
+          value: task
+        - name: namespace
+          value: default
+      workspaces:
+      - name: output
+        workspace: source-volume
+      - name: ssh-directory
+        workspace: ssh-creds
+      params:
+      - name: url
+        value: git@github.com:shadowmktk/springboot-demo-deploy.git
+      - name: revision
+        value: $(params.REVISION)
+      - name: subdirectory
+        value: deployment
+      - name: sslVerify
+        value: false
