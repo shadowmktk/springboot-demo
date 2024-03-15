@@ -9,6 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class HelloController {
     @GetMapping
     public String sayHello() {
-        return "Hello SpringBoot v1.0.2"; 
+        return "Hello SpringBoot v1.0.3"; 
     }    
 }
